@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   }
 
   if (!isAdmin(req)) {
-    return sendJson(res, 401, { error: "Contrasena incorrecta" });
+    return sendJson(res, 401, { error: "Contraseña incorrecta" });
   }
 
   return sendJson(res, 200, { ok: true });

@@ -47,14 +47,14 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       const payload = await readBody(req);
       const product = normalizeProduct(payload);
+      const createdAt = new Date();
 
       if (!product.name) {
         return sendJson(res, 400, { error: "El nombre es obligatorio" });
       }
 
-      product.createdAt = new Date();
-      await products.updateOne({ id: product.id }, { $set: product, $setOnInsert: { createdAt: product.createdAt } }, { upsert: true });
-      return sendJson(res, 200, product);
+      await products.updateOne({ id: product.id }, { $set: product, $setOnInsert: { createdAt } }, { upsert: true });
+      return sendJson(res, 200, { ...product, createdAt });
     }
 
     if (req.method === "PUT") {

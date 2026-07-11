@@ -39,9 +39,9 @@ const STORAGE_ADMIN_TOKEN = "norte-admin-token-v1";
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "5491161962382";
 
 const defaultSettings = {
-  topLeft: "Envio gratis a partir de $80.000",
+  topLeft: "Envío gratis a partir de $80.000",
   topCenter: "Suplementos de calidad para resultados reales",
-  topRight: "3 cuotas sin interes"
+  topRight: "3 cuotas sin interés"
 };
 
 const routeToView = {
@@ -59,7 +59,7 @@ const routeToView = {
 const viewToRoute = {
   shop: "/",
   productos: "/productos",
-  "categorÃ­as": "/categorias",
+  "categorías": "/categorias",
   categorias: "/categorias",
   objetivos: "/objetivos",
   packs: "/packs",
@@ -326,7 +326,7 @@ function ProductVisual({ product, compact = false }) {
 
 function Header({ cartCount, onCartOpen, activeView, setActiveView, settings }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const nav = ["Inicio", "Productos", "Categorias", "Objetivos", "Packs", "Nosotros", "Contacto"];
+  const nav = ["Inicio", "Productos", "Categorías", "Objetivos", "Packs", "Nosotros", "Contacto"];
 
   const go = (item) => {
     const next = item === "Inicio" ? "shop" : item.toLowerCase();
@@ -352,7 +352,7 @@ function Header({ cartCount, onCartOpen, activeView, setActiveView, settings }) 
           {nav.map((item) => (
             <button key={item} onClick={() => go(item)} className={activeView === item.toLowerCase() ? "active" : ""}>
               {item}
-              {["Productos", "Categorias", "Objetivos"].includes(item) && <ChevronDown size={14} />}
+              {["Productos", "Categorías", "Objetivos"].includes(item) && <ChevronDown size={14} />}
             </button>
           ))}
         </nav>
@@ -635,7 +635,7 @@ function CartDrawer({ open, setOpen, cart, products, setCart, goToCheckout }) {
         >
           Ir al checkout <ArrowRight size={18} />
         </button>
-        <small>Pago unicamente por transferencia. Completas tus datos en el checkout.</small>
+        <small>Pago únicamente por transferencia. Completas tus datos en el checkout.</small>
       </div>
     </aside>
   );
@@ -659,7 +659,7 @@ function CheckoutPage({ cart, products, setCart, setActiveView }) {
   };
 
   const checkoutText = encodeURIComponent(
-    `Hola Norte Suplementos, quiero hacer este pedido:\n\nCliente:\nNombre: ${customer.name}\nTelefono: ${customer.phone}\nDireccion: ${customer.address}\nLocalidad: ${customer.city}\nNotas: ${customer.notes || "-"}\n\nProductos:\n${lines
+    `Hola Norte Suplementos, quiero hacer este pedido:\n\nCliente:\nNombre: ${customer.name}\nTeléfono: ${customer.phone}\nDirección: ${customer.address}\nLocalidad: ${customer.city}\nNotas: ${customer.notes || "-"}\n\nProductos:\n${lines
       .map((item) => `- ${item.product.name} x${item.qty}: ${money(item.product.price * item.qty)}`)
       .join("\n")}\n\nTotal: ${money(total)}\nForma de pago: transferencia bancaria.`
   );
@@ -684,7 +684,7 @@ function CheckoutPage({ cart, products, setCart, setActiveView }) {
         <div>
           <p className="eyebrow"><ShoppingCart size={16} /> Checkout</p>
           <h1>Finalizar compra</h1>
-          <p>Completas tus datos y enviamos el pedido por WhatsApp. El pago es unicamente por transferencia.</p>
+          <p>Completas tus datos y enviamos el pedido por WhatsApp. El pago es únicamente por transferencia.</p>
         </div>
         <button className="ghost-button" onClick={() => setActiveView("productos")}>
           Seguir comprando <ArrowRight size={18} />
@@ -695,8 +695,8 @@ function CheckoutPage({ cart, products, setCart, setActiveView }) {
         <form className="checkout-form" onSubmit={submitCheckout}>
           <h2>Datos del cliente</h2>
           <label>Nombre y apellido<input required value={customer.name} onChange={(event) => updateCustomer("name", event.target.value)} /></label>
-          <label>Telefono<input required value={customer.phone} onChange={(event) => updateCustomer("phone", event.target.value)} /></label>
-          <label>Direccion<input required value={customer.address} onChange={(event) => updateCustomer("address", event.target.value)} /></label>
+          <label>Teléfono<input required value={customer.phone} onChange={(event) => updateCustomer("phone", event.target.value)} /></label>
+          <label>Dirección<input required value={customer.address} onChange={(event) => updateCustomer("address", event.target.value)} /></label>
           <label>Localidad<input required value={customer.city} onChange={(event) => updateCustomer("city", event.target.value)} /></label>
           <label>Notas<textarea value={customer.notes} onChange={(event) => updateCustomer("notes", event.target.value)} placeholder="Horario, referencias o consulta" /></label>
           <button className="primary-button" type="submit" disabled={!lines.length}>
@@ -765,7 +765,7 @@ function AdminGate({ onUnlock }) {
         </div>
         <form onSubmit={submit}>
           <label>
-            Contrasena
+            Contraseña
             <input
               autoFocus
               required
@@ -798,6 +798,25 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
   const updateSettings = (field, value) => setSettingsForm((current) => ({ ...current, [field]: value }));
 
   const adminHeaders = () => ({ "x-admin-token": adminToken });
+
+  const uploadProductImage = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setNotice("El archivo debe ser una imagen.");
+      return;
+    }
+
+    if (file.size > 900 * 1024) {
+      setNotice("La imagen es muy pesada. Usá una imagen menor a 900 KB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => update("image", String(reader.result || ""));
+    reader.readAsDataURL(file);
+  };
 
   const saveProduct = async (event) => {
     event.preventDefault();
@@ -859,7 +878,7 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "catalogo-norte-suplementos.json";
+    link.download = "catálogo-norte-suplementos.json";
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -893,7 +912,7 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
           await seedCatalog(parsed);
         }
       } catch {
-        alert("El archivo no parece ser un catalogo valido.");
+        alert("El archivo no parece ser un catálogo valido.");
       }
     };
     reader.readAsText(file);
@@ -924,15 +943,15 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
       <section className="admin-hero">
         <div>
           <p className="eyebrow"><CircleUserRound size={16} /> Panel de admin</p>
-          <h1>Gestiona productos, precios, stock, promos e imagenes.</h1>
+          <h1>Gestiona productos, precios, stock, promos e imágenes.</h1>
           <p className="admin-status">{apiReady ? "Conectado a MongoDB." : "Configura MONGODB_URI para conectar la base."}</p>
         </div>
         <div className="admin-actions">
           <button className="ghost-button" onClick={onLogout}>
-            Cerrar sesion <X size={18} />
+            Cerrar sesión <X size={18} />
           </button>
           <button className="primary-button" onClick={exportCatalog}>
-            Exportar catalogo <Upload size={18} />
+            Exportar catálogo <Upload size={18} />
           </button>
           <label className="file-button">
             Importar
@@ -956,12 +975,12 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
           <h2>{editingId ? "Editar producto" : "Nuevo producto"}</h2>
           <label>Nombre<input required value={form.name} onChange={(e) => update("name", e.target.value)} /></label>
           <div className="two-cols">
-            <label>Categoria<input value={form.category} onChange={(e) => update("category", e.target.value)} /></label>
+            <label>Categoría<input value={form.category} onChange={(e) => update("category", e.target.value)} /></label>
             <label>Objetivo<select value={form.objective} onChange={(e) => update("objective", e.target.value)}>{objectives.map((item) => <option key={item.name}>{item.name}</option>)}</select></label>
           </div>
           <div className="two-cols">
             <label>Sabor<input value={form.flavor} onChange={(e) => update("flavor", e.target.value)} /></label>
-            <label>Tamano<input value={form.size} onChange={(e) => update("size", e.target.value)} /></label>
+            <label>Tamaño<input value={form.size} onChange={(e) => update("size", e.target.value)} /></label>
           </div>
           <div className="three-cols">
             <label>Precio<input type="number" value={form.price} onChange={(e) => update("price", e.target.value)} /></label>
@@ -972,8 +991,16 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
             <label>Etiqueta<input value={form.badge} onChange={(e) => update("badge", e.target.value)} /></label>
             <label>Color<input type="color" value={form.color} onChange={(e) => update("color", e.target.value)} /></label>
           </div>
-          <label>URL de imagen<input value={form.image} onChange={(e) => update("image", e.target.value)} placeholder="https://..." /></label>
-          <label>Descripcion<textarea value={form.description} onChange={(e) => update("description", e.target.value)} /></label>
+          <div className="image-upload-field">
+            <label>Imagen del producto<input type="file" accept="image/*" onChange={uploadProductImage} /></label>
+            {form.image && (
+              <div className="image-preview">
+                <img src={form.image} alt="Vista previa del producto" />
+                <button className="ghost-button" type="button" onClick={() => update("image", "")}>Quitar imagen</button>
+              </div>
+            )}
+          </div>
+          <label>Descripción<textarea value={form.description} onChange={(e) => update("description", e.target.value)} /></label>
           <label className="check-line">
             <input type="checkbox" checked={form.featured} onChange={(e) => update("featured", e.target.checked)} />
             Mostrar como destacado

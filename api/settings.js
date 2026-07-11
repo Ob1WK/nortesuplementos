@@ -1,9 +1,9 @@
 import { getDb, isAdmin, readBody, sendJson } from "./_mongo.js";
 
 const defaultSettings = {
-  topLeft: "Envio gratis a partir de $80.000",
+  topLeft: "Envío gratis a partir de $80.000",
   topCenter: "Suplementos de calidad para resultados reales",
-  topRight: "3 cuotas sin interes",
+  topRight: "3 cuotas sin interés",
   updatedAt: new Date()
 };
 
