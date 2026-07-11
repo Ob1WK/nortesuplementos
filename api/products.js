@@ -3,6 +3,13 @@ import { getDb, isAdmin, readBody, sendJson } from "./_mongo.js";
 const collectionName = "products";
 
 function normalizeProduct(input) {
+  const incomingImages = Array.isArray(input.images) ? input.images : [];
+  const images = [...incomingImages, input.image]
+    .filter(Boolean)
+    .map((image) => String(image).trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
   const id = String(input.id || input.name || crypto.randomUUID())
     .toLowerCase()
     .normalize("NFD")
@@ -19,12 +26,12 @@ function normalizeProduct(input) {
     size: String(input.size || "").trim(),
     price: Number(input.price || 0),
     oldPrice: Number(input.oldPrice || 0),
-    stock: Number(input.stock || 0),
+    available: input.available !== false,
     featured: Boolean(input.featured),
     badge: String(input.badge || "").trim(),
     color: String(input.color || "#d69b2d"),
     description: String(input.description || "").trim(),
-    image: String(input.image || "").trim(),
+    images,
     updatedAt: new Date()
   };
 }

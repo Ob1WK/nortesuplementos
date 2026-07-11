@@ -79,12 +79,12 @@ const defaultProducts = [
     size: "2 kg",
     price: 69990,
     oldPrice: 79990,
-    stock: 18,
+    available: true,
     featured: true,
     badge: "Más vendido",
     color: "#d69b2d",
     description: "Proteína premium para recuperación muscular y aporte diario de aminoácidos.",
-    image: ""
+    images: []
   },
   {
     id: "mass-gainer",
@@ -95,12 +95,12 @@ const defaultProducts = [
     size: "3 kg",
     price: 89990,
     oldPrice: 99990,
-    stock: 12,
+    available: true,
     featured: true,
     badge: "Volumen",
     color: "#8a5a2f",
     description: "Calorías, carbohidratos y proteínas para etapas de volumen exigentes.",
-    image: ""
+    images: []
   },
   {
     id: "creatina",
@@ -111,12 +111,12 @@ const defaultProducts = [
     size: "300 g",
     price: 24990,
     oldPrice: 29990,
-    stock: 24,
+    available: true,
     featured: true,
     badge: "Nuevo",
     color: "#c4c4c4",
     description: "Creatina micronizada para potencia, fuerza y rendimiento sostenido.",
-    image: ""
+    images: []
   },
   {
     id: "shaker",
@@ -127,12 +127,12 @@ const defaultProducts = [
     size: "700 ml",
     price: 9990,
     oldPrice: 12990,
-    stock: 35,
+    available: true,
     featured: true,
     badge: "Combo ideal",
     color: "#d9a01f",
     description: "Shaker resistente con tapa segura para entrenar y llevar tus suplementos.",
-    image: ""
+    images: []
   },
   {
     id: "pre-workout",
@@ -143,12 +143,12 @@ const defaultProducts = [
     size: "300 g",
     price: 34990,
     oldPrice: 39990,
-    stock: 16,
+    available: true,
     featured: true,
     badge: "Energía",
     color: "#b9302a",
     description: "Fórmula para energía, foco y empuje antes de entrenamientos intensos.",
-    image: ""
+    images: []
   },
   {
     id: "pack-definicion",
@@ -159,12 +159,12 @@ const defaultProducts = [
     size: "3 productos",
     price: 109990,
     oldPrice: 128970,
-    stock: 8,
+    available: true,
     featured: false,
     badge: "Ahorro",
     color: "#2e78a6",
     description: "Whey, creatina y shaker para sostener un plan simple y efectivo.",
-    image: ""
+    images: []
   }
 ];
 
@@ -188,12 +188,12 @@ const initialForm = {
   size: "",
   price: 0,
   oldPrice: 0,
-  stock: 0,
+  available: true,
   featured: false,
   badge: "",
   color: "#d69b2d",
   description: "",
-  image: ""
+  images: []
 };
 
 function money(value) {
@@ -211,6 +211,19 @@ function slugify(value) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+function getProductImages(product) {
+  return Array.isArray(product.images) && product.images.length
+    ? product.images.filter(Boolean).slice(0, 3)
+    : product.image
+      ? [product.image]
+      : [];
+}
+
+function getDiscountPercent(product) {
+  if (!product.oldPrice || product.oldPrice <= product.price) return 0;
+  return Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100);
 }
 
 function useLocalState(key, fallback) {
@@ -308,8 +321,9 @@ function getCurrentView() {
 }
 
 function ProductVisual({ product, compact = false }) {
-  if (product.image) {
-    return <img className="product-photo" src={product.image} alt={product.name} />;
+  const images = getProductImages(product);
+  if (images.length) {
+    return <img className="product-photo" src={images[0]} alt={product.name} />;
   }
 
   return (
@@ -403,9 +417,11 @@ function ObjectiveRail({ selectedObjective, setSelectedObjective, setActiveView 
 }
 
 function ProductCard({ product, addToCart }) {
+  const discount = getDiscountPercent(product);
   return (
     <article className="product-card">
       {product.badge && <span className="badge">{product.badge}</span>}
+      {discount > 0 && <span className="discount-badge">-{discount}%</span>}
       <div className="product-art">
         <ProductVisual product={product} />
       </div>
@@ -417,9 +433,9 @@ function ProductCard({ product, addToCart }) {
           <strong>{money(product.price)}</strong>
           {product.oldPrice > product.price && <del>{money(product.oldPrice)}</del>}
         </div>
-        <small>3 cuotas sin interés</small>
-        <button onClick={() => addToCart(product.id)} disabled={product.stock <= 0}>
-          <ShoppingCart size={17} /> {product.stock > 0 ? "Agregar al carrito" : "Sin stock"}
+        <small>{discount > 0 ? "Producto en promo" : "Pago por transferencia"}</small>
+        <button onClick={() => addToCart(product.id)}>
+          <ShoppingCart size={17} /> Agregar al carrito
         </button>
       </div>
     </article>
@@ -430,23 +446,23 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("Todas");
   const [sort, setSort] = useState("destacados");
+  const availableProducts = useMemo(() => products.filter((product) => product.available !== false), [products]);
 
-  const categories = useMemo(() => ["Todas", ...new Set(products.map((p) => p.category))], [products]);
+  const categories = useMemo(() => ["Todas", ...new Set(availableProducts.map((p) => p.category))], [availableProducts]);
 
   const visibleProducts = useMemo(() => {
-    return products
+    return availableProducts
       .filter((product) => category === "Todas" || product.category === category)
       .filter((product) => selectedObjective === "Todos" || product.objective === selectedObjective)
       .filter((product) => `${product.name} ${product.category} ${product.flavor}`.toLowerCase().includes(query.toLowerCase()))
       .sort((a, b) => {
         if (sort === "precio-menor") return a.price - b.price;
         if (sort === "precio-mayor") return b.price - a.price;
-        if (sort === "stock") return b.stock - a.stock;
         return Number(b.featured) - Number(a.featured);
       });
-  }, [products, category, selectedObjective, query, sort]);
+  }, [availableProducts, category, selectedObjective, query, sort]);
 
-  const featured = products.filter((p) => p.featured).slice(0, 5);
+  const featured = availableProducts.filter((p) => p.featured).slice(0, 5);
   const showFullCatalog = ["productos", "categorias", "objetivos", "packs"].includes(activeView);
   const catalogProducts = activeView === "packs" ? visibleProducts.filter((p) => p.category === "Packs") : visibleProducts;
 
@@ -527,7 +543,6 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
               <option value="destacados">Destacados</option>
               <option value="precio-menor">Menor precio</option>
               <option value="precio-mayor">Mayor precio</option>
-              <option value="stock">Mayor stock</option>
             </select>
           </div>
           <div className="product-grid">
@@ -544,6 +559,75 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
         </section>
       )}
     </>
+  );
+}
+
+function ProductListing({ products, addToCart, selectedObjective, setSelectedObjective, activeView }) {
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("Todas");
+  const [sort, setSort] = useState("destacados");
+  const availableProducts = useMemo(() => products.filter((product) => product.available !== false), [products]);
+  const categories = useMemo(() => ["Todas", ...new Set(availableProducts.map((product) => product.category))], [availableProducts]);
+  const viewObjective = activeView === "objetivos" ? selectedObjective : "Todos";
+  const forcedCategory = activeView === "packs" ? "Packs" : category;
+
+  const visibleProducts = useMemo(() => {
+    return availableProducts
+      .filter((product) => forcedCategory === "Todas" || product.category === forcedCategory)
+      .filter((product) => viewObjective === "Todos" || product.objective === viewObjective)
+      .filter((product) => `${product.name} ${product.category} ${product.flavor}`.toLowerCase().includes(query.toLowerCase()))
+      .sort((a, b) => {
+        if (sort === "precio-menor") return a.price - b.price;
+        if (sort === "precio-mayor") return b.price - a.price;
+        if (sort === "promo") return getDiscountPercent(b) - getDiscountPercent(a);
+        return Number(b.featured) - Number(a.featured);
+      });
+  }, [availableProducts, forcedCategory, viewObjective, query, sort]);
+
+  return (
+    <main className="catalog-page">
+      <section className="catalog-hero">
+        <div>
+          <p className="eyebrow"><Filter size={16} /> Productos</p>
+          <h1>{activeView === "packs" ? "Packs" : "Todos los productos"}</h1>
+          <p>Explorá el catálogo, filtrá por categoría u objetivo y agregá tus suplementos al carrito.</p>
+        </div>
+      </section>
+
+      <section className="catalog-panel full-catalog">
+        <div className="filters">
+          <label>
+            <Search size={18} />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar producto" />
+          </label>
+          <select value={category} onChange={(event) => setCategory(event.target.value)} disabled={activeView === "packs"}>
+            {categories.map((item) => <option key={item}>{item}</option>)}
+          </select>
+          <select value={selectedObjective} onChange={(event) => setSelectedObjective(event.target.value)}>
+            <option>Todos</option>
+            {objectives.map((item) => <option key={item.name}>{item.name}</option>)}
+          </select>
+          <select value={sort} onChange={(event) => setSort(event.target.value)}>
+            <option value="destacados">Destacados</option>
+            <option value="promo">Mayor descuento</option>
+            <option value="precio-menor">Menor precio</option>
+            <option value="precio-mayor">Mayor precio</option>
+          </select>
+        </div>
+
+        <div className="product-grid">
+          {visibleProducts.map((product) => (
+            <ProductCard key={product.id} product={product} addToCart={addToCart} />
+          ))}
+          {visibleProducts.length === 0 && (
+            <div className="empty-catalog">
+              <h3>No hay productos para mostrar</h3>
+              <p>Probá cambiando los filtros o revisá disponibilidad desde el admin.</p>
+            </div>
+          )}
+        </div>
+      </section>
+    </main>
   );
 }
 
@@ -583,7 +667,7 @@ function AboutAndContact() {
 function CartDrawer({ open, setOpen, cart, products, setCart, goToCheckout }) {
   const lines = cart
     .map((item) => ({ ...item, product: products.find((product) => product.id === item.id) }))
-    .filter((item) => item.product);
+    .filter((item) => item.product && item.product.available !== false);
   const total = lines.reduce((sum, item) => sum + item.product.price * item.qty, 0);
 
   const updateQty = (id, delta) => {
@@ -651,7 +735,7 @@ function CheckoutPage({ cart, products, setCart, setActiveView }) {
   });
   const lines = cart
     .map((item) => ({ ...item, product: products.find((product) => product.id === item.id) }))
-    .filter((item) => item.product);
+    .filter((item) => item.product && item.product.available !== false);
   const total = lines.reduce((sum, item) => sum + item.product.price * item.qty, 0);
 
   const updateCustomer = (field, value) => {
@@ -799,23 +883,51 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
 
   const adminHeaders = () => ({ "x-admin-token": adminToken });
 
-  const uploadProductImage = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const uploadProductImages = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
 
-    if (!file.type.startsWith("image/")) {
-      setNotice("El archivo debe ser una imagen.");
+    const currentImages = getProductImages(form);
+    const availableSlots = Math.max(0, 3 - currentImages.length);
+    const selectedFiles = files.slice(0, availableSlots);
+
+    if (!availableSlots) {
+      setNotice("Cada producto puede tener hasta 3 fotos.");
+      event.target.value = "";
       return;
     }
 
-    if (file.size > 900 * 1024) {
-      setNotice("La imagen es muy pesada. Usá una imagen menor a 900 KB.");
-      return;
+    for (const file of selectedFiles) {
+      if (!file.type.startsWith("image/")) {
+        setNotice("Todos los archivos deben ser imágenes.");
+        event.target.value = "";
+        return;
+      }
+
+      if (file.size > 900 * 1024) {
+        setNotice("Cada imagen debe pesar menos de 900 KB.");
+        event.target.value = "";
+        return;
+      }
     }
 
-    const reader = new FileReader();
-    reader.onload = () => update("image", String(reader.result || ""));
-    reader.readAsDataURL(file);
+    const newImages = await Promise.all(
+      selectedFiles.map(
+        (file) =>
+          new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ""));
+            reader.readAsDataURL(file);
+          })
+      )
+    );
+
+    update("images", [...currentImages, ...newImages].slice(0, 3));
+    event.target.value = "";
+  };
+
+  const removeProductImage = (index) => {
+    update("images", getProductImages(form).filter((_, imageIndex) => imageIndex !== index));
   };
 
   const saveProduct = async (event) => {
@@ -828,7 +940,8 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
       id,
       price: Number(form.price),
       oldPrice: Number(form.oldPrice),
-      stock: Number(form.stock)
+      available: form.available !== false,
+      images: getProductImages(form)
     };
 
     try {
@@ -854,7 +967,7 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
 
   const editProduct = (product) => {
     setEditingId(product.id);
-    setForm(product);
+    setForm({ ...product, available: product.available !== false, images: getProductImages(product) });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -943,7 +1056,7 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
       <section className="admin-hero">
         <div>
           <p className="eyebrow"><CircleUserRound size={16} /> Panel de admin</p>
-          <h1>Gestiona productos, precios, stock, promos e imágenes.</h1>
+          <h1>Gestioná productos, precios, disponibilidad, promos e imágenes.</h1>
           <p className="admin-status">{apiReady ? "Conectado a MongoDB." : "Configura MONGODB_URI para conectar la base."}</p>
         </div>
         <div className="admin-actions">
@@ -985,18 +1098,23 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
           <div className="three-cols">
             <label>Precio<input type="number" value={form.price} onChange={(e) => update("price", e.target.value)} /></label>
             <label>Precio anterior<input type="number" value={form.oldPrice} onChange={(e) => update("oldPrice", e.target.value)} /></label>
-            <label>Stock<input type="number" value={form.stock} onChange={(e) => update("stock", e.target.value)} /></label>
+            <label>Disponibilidad<select value={form.available === false ? "no" : "yes"} onChange={(e) => update("available", e.target.value === "yes")}><option value="yes">Disponible</option><option value="no">No disponible</option></select></label>
           </div>
           <div className="two-cols">
             <label>Etiqueta<input value={form.badge} onChange={(e) => update("badge", e.target.value)} /></label>
             <label>Color<input type="color" value={form.color} onChange={(e) => update("color", e.target.value)} /></label>
           </div>
           <div className="image-upload-field">
-            <label>Imagen del producto<input type="file" accept="image/*" onChange={uploadProductImage} /></label>
-            {form.image && (
-              <div className="image-preview">
-                <img src={form.image} alt="Vista previa del producto" />
-                <button className="ghost-button" type="button" onClick={() => update("image", "")}>Quitar imagen</button>
+            <label>Fotos del producto<input type="file" accept="image/*" multiple onChange={uploadProductImages} disabled={getProductImages(form).length >= 3} /></label>
+            <small>{getProductImages(form).length}/3 fotos cargadas</small>
+            {getProductImages(form).length > 0 && (
+              <div className="image-preview-grid">
+                {getProductImages(form).map((image, index) => (
+                  <div className="image-preview" key={`${image.slice(0, 24)}-${index}`}>
+                    <img src={image} alt={`Vista previa ${index + 1}`} />
+                    <button className="ghost-button" type="button" onClick={() => removeProductImage(index)}>Quitar</button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1021,7 +1139,7 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
               <ProductVisual product={product} compact />
               <div>
                 <strong>{product.name}</strong>
-                <span>{product.category} - {product.stock} en stock - {money(product.price)}</span>
+                <span>{product.category} - {product.available === false ? "No disponible" : "Disponible"} - {money(product.price)}</span>
               </div>
               <button className="icon-button" onClick={() => editProduct(product)} aria-label="Editar">
                 <Edit3 size={18} />
@@ -1098,6 +1216,14 @@ function App() {
         )
       ) : activeView === "checkout" ? (
         <CheckoutPage cart={cart} products={products} setCart={setCart} setActiveView={setActiveView} />
+      ) : ["productos", "categorias", "objetivos", "packs"].includes(activeView) ? (
+        <ProductListing
+          products={products}
+          addToCart={addToCart}
+          selectedObjective={selectedObjective}
+          setSelectedObjective={setSelectedObjective}
+          activeView={activeView}
+        />
       ) : (
         <main>
           <Storefront

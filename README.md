@@ -31,6 +31,10 @@ El checkout envia el pedido por WhatsApp a `+54 9 11 6196-2382` con los datos de
 
 Desde el admin tambien se editan los tres textos de la barra superior: envio gratis, claim central y cuotas/promocion.
 
+## Productos
+
+Desde `/admin` cada producto puede tener hasta 3 fotos, precio actual, precio anterior para mostrar descuento, destacado y disponibilidad. Los productos marcados como `No disponible` no aparecen en la web publica ni en `/productos`.
+
 ## Desarrollo
 
 ```bash
