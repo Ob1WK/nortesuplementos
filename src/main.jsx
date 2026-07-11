@@ -1049,7 +1049,7 @@ function App() {
   return (
     <div>
       <Header cartCount={cartCount} onCartOpen={() => setCartOpen(true)} activeView={activeView} setActiveView={setActiveView} settings={settings} />
-      {status && <div className="site-status">{status}</div>}
+      {activeView === "admin" && status && <div className="site-status">{status}</div>}
       {activeView === "admin" ? (
         adminToken ? (
           <AdminPanel

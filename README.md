@@ -17,6 +17,8 @@ Reemplaza `<db_password>` por la contrasena real del usuario de MongoDB. Si la c
 
 Si `/api/health` muestra `MongoDB authentication failed`, la app esta llegando a Atlas pero el usuario o la contrasena de `MONGODB_URI` no son validos. Si muestra que la URI contiene `<db_password>`, Vercel todavia tiene pegado el ejemplo sin reemplazar.
 
+`MONGODB_DB` debe ser solamente el nombre de la base, por ejemplo `norte_suplementos`. No pegues ahi la URI completa.
+
 El checkout envia el pedido por WhatsApp a `+54 9 11 6196-2382` con los datos del cliente, el detalle del carrito y la indicacion de pago por transferencia.
 
 ## Rutas

@@ -1,9 +1,18 @@
 import { MongoClient } from "mongodb";
 
 const uri = process.env.MONGODB_URI;
-const dbName = process.env.MONGODB_DB || "norte_suplementos";
+const fallbackDbName = "norte_suplementos";
 
 let clientPromise;
+
+export function getDbName() {
+  const configured = (process.env.MONGODB_DB || "").trim();
+  if (!configured || configured.includes(".") || configured.includes("/") || configured.includes(":")) {
+    return fallbackDbName;
+  }
+
+  return configured;
+}
 
 export async function getDb() {
   if (!uri) {
@@ -21,7 +30,7 @@ export async function getDb() {
 
   try {
     const client = await clientPromise;
-    return client.db(dbName);
+    return client.db(getDbName());
   } catch (error) {
     clientPromise = undefined;
     if (/bad auth|Authentication failed/i.test(error.message || "")) {

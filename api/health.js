@@ -1,4 +1,4 @@
-import { getDb, sendJson } from "./_mongo.js";
+import { getDb, getDbName, sendJson } from "./_mongo.js";
 
 export default async function handler(req, res) {
   try {
@@ -7,9 +7,10 @@ export default async function handler(req, res) {
     return sendJson(res, 200, {
       ok: true,
       mongodb: "connected",
-      db: process.env.MONGODB_DB || "norte_suplementos",
+      db: getDbName(),
       hasMongoUri: Boolean(process.env.MONGODB_URI),
-      hasAdminToken: Boolean(process.env.ADMIN_TOKEN)
+      hasAdminToken: Boolean(process.env.ADMIN_TOKEN),
+      mongodbDbIgnored: Boolean(process.env.MONGODB_DB && process.env.MONGODB_DB !== getDbName())
     });
   } catch (error) {
     return sendJson(res, 500, {
@@ -17,6 +18,8 @@ export default async function handler(req, res) {
       mongodb: "error",
       hasMongoUri: Boolean(process.env.MONGODB_URI),
       hasAdminToken: Boolean(process.env.ADMIN_TOKEN),
+      db: getDbName(),
+      mongodbDbIgnored: Boolean(process.env.MONGODB_DB && process.env.MONGODB_DB !== getDbName()),
       error: error.message || "Error interno"
     });
   }
