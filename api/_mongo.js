@@ -10,13 +10,25 @@ export async function getDb() {
     throw new Error("Missing MONGODB_URI");
   }
 
+  if (uri.includes("<db_password>")) {
+    throw new Error("MONGODB_URI still contains <db_password>. Replace it in Vercel with the real MongoDB Atlas user password.");
+  }
+
   if (!clientPromise) {
     const client = new MongoClient(uri);
     clientPromise = client.connect();
   }
 
-  const client = await clientPromise;
-  return client.db(dbName);
+  try {
+    const client = await clientPromise;
+    return client.db(dbName);
+  } catch (error) {
+    clientPromise = undefined;
+    if (/bad auth|Authentication failed/i.test(error.message || "")) {
+      throw new Error("MongoDB authentication failed. Check the Atlas username/password in MONGODB_URI and URL-encode special characters in the password.");
+    }
+    throw error;
+  }
 }
 
 export function isAdmin(req) {

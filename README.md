@@ -13,7 +13,9 @@ ADMIN_TOKEN=una-clave-segura-para-el-admin
 VITE_WHATSAPP_NUMBER=5491161962382
 ```
 
-Reemplaza `<db_password>` por la contrasena real del usuario de MongoDB. La misma `ADMIN_TOKEN` es la contrasena de acceso al panel admin para crear, editar, borrar o importar productos.
+Reemplaza `<db_password>` por la contrasena real del usuario de MongoDB. Si la contrasena tiene caracteres especiales como `@`, `#`, `/`, `?`, `:`, `%` o espacios, hay que URL-encodearla antes de pegarla en `MONGODB_URI`. La misma `ADMIN_TOKEN` es la contrasena de acceso al panel admin para crear, editar, borrar o importar productos.
+
+Si `/api/health` muestra `MongoDB authentication failed`, la app esta llegando a Atlas pero el usuario o la contrasena de `MONGODB_URI` no son validos. Si muestra que la URI contiene `<db_password>`, Vercel todavia tiene pegado el ejemplo sin reemplazar.
 
 El checkout envia el pedido por WhatsApp a `+54 9 11 6196-2382` con los datos del cliente, el detalle del carrito y la indicacion de pago por transferencia.
 
