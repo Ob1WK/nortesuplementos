@@ -697,14 +697,14 @@ nav button:hover {
   border: 1px solid rgba(216, 155, 37, 0.35);
   border-radius: var(--radius);
   background:
-    linear-gradient(120deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.12)),
-    repeating-linear-gradient(135deg, transparent 0 14px, rgba(216, 155, 37, 0.12) 14px 16px),
+    linear-gradient(120deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.28)),
+    url("/banner.png") center center / cover no-repeat,
     #151719;
 }
 
 .promo-athlete {
   background:
-    linear-gradient(120deg, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0.18)),
+    linear-gradient(120deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.28)),
     url("/banner.png") center center / cover no-repeat;
 }
 

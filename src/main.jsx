@@ -340,7 +340,7 @@ function ProductVisual({ product, compact = false }) {
 
 function Header({ cartCount, onCartOpen, activeView, setActiveView, settings }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const nav = ["Inicio", "Productos", "Categorías", "Objetivos", "Packs", "Nosotros", "Contacto"];
+  const nav = ["Inicio", "Productos", "Packs", "Contacto"];
 
   const go = (item) => {
     const next = item === "Inicio" ? "shop" : item.toLowerCase();
@@ -366,16 +366,13 @@ function Header({ cartCount, onCartOpen, activeView, setActiveView, settings }) 
           {nav.map((item) => (
             <button key={item} onClick={() => go(item)} className={activeView === item.toLowerCase() ? "active" : ""}>
               {item}
-              {["Productos", "Categorías", "Objetivos"].includes(item) && <ChevronDown size={14} />}
+              {["Productos"].includes(item) && <ChevronDown size={14} />}
             </button>
           ))}
         </nav>
         <div className="header-actions">
           <button className="icon-button" onClick={() => setActiveView("productos")} aria-label="Buscar">
             <Search size={22} />
-          </button>
-          <button className="icon-button" onClick={() => setActiveView("admin")} aria-label="Panel de administración">
-            <CircleUserRound size={22} />
           </button>
           <button className="icon-button cart-trigger" onClick={onCartOpen} aria-label="Carrito">
             <ShoppingCart size={22} />
@@ -492,7 +489,7 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
         {featured.length === 0 && (
           <div className="empty-catalog">
             <h3>Todavia no hay productos destacados</h3>
-            <p>Cargalos desde el panel admin para que aparezcan en la tienda.</p>
+            <p>Muy pronto vas a encontrar novedades destacadas.</p>
           </div>
         )}
       </section>
@@ -552,7 +549,7 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
             {catalogProducts.length === 0 && (
               <div className="empty-catalog">
                 <h3>No hay productos para mostrar</h3>
-                <p>Agrega productos desde el admin o cambia los filtros.</p>
+                <p>Probá cambiando los filtros o volvé más tarde.</p>
               </div>
             )}
           </div>
@@ -621,8 +618,8 @@ function ProductListing({ products, addToCart, selectedObjective, setSelectedObj
           ))}
           {visibleProducts.length === 0 && (
             <div className="empty-catalog">
-              <h3>No hay productos para mostrar</h3>
-              <p>Probá cambiando los filtros o revisá disponibilidad desde el admin.</p>
+              <h3>{activeView === "packs" ? "Pronto vamos a cargar packs especiales" : "No hay productos disponibles"}</h3>
+              <p>{activeView === "packs" ? "Estamos preparando combos para que puedas ahorrar más." : "Probá cambiando los filtros o volvé más tarde."}</p>
             </div>
           )}
         </div>
@@ -642,7 +639,7 @@ function AboutAndContact() {
         <ul>
           <li><PackageCheck size={20} /> Catálogo curado por objetivos.</li>
           <li><Truck size={20} /> Envíos coordinados a todo el país.</li>
-          <li><BadgePercent size={20} /> Packs y promociones actualizables desde el admin.</li>
+          <li><BadgePercent size={20} /> Packs y promociones actualizadas constantemente.</li>
         </ul>
       </div>
       <div className="contact-band">
@@ -655,7 +652,7 @@ function AboutAndContact() {
           <a className="primary-button" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer">
             WhatsApp <MessageCircle size={18} />
           </a>
-          <a className="ghost-button" href="https://instagram.com/" target="_blank" rel="noreferrer">
+          <a className="ghost-button" href="https://www.instagram.com/suplemento.norte/" target="_blank" rel="noreferrer">
             Instagram <Instagram size={18} />
           </a>
         </div>
