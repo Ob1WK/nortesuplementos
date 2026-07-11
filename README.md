@@ -17,6 +17,16 @@ Reemplaza `<db_password>` por la contrasena real del usuario de MongoDB. La mism
 
 El checkout envia el pedido por WhatsApp a `+54 9 11 6196-2382` con los datos del cliente, el detalle del carrito y la indicacion de pago por transferencia.
 
+## Rutas
+
+- `/`: tienda.
+- `/productos`, `/categorias`, `/objetivos`, `/packs`: catalogo filtrable.
+- `/checkout`: datos del cliente y envio del pedido por WhatsApp.
+- `/admin`: panel protegido por `ADMIN_TOKEN`.
+- `/api/health`: diagnostico rapido de MongoDB y variables de entorno.
+
+Desde el admin tambien se editan los tres textos de la barra superior: envio gratis, claim central y cuotas/promocion.
+
 ## Desarrollo
 
 ```bash

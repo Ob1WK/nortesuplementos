@@ -38,6 +38,37 @@ const STORAGE_CART = "norte-cart-v1";
 const STORAGE_ADMIN_TOKEN = "norte-admin-token-v1";
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "5491161962382";
 
+const defaultSettings = {
+  topLeft: "Envio gratis a partir de $80.000",
+  topCenter: "Suplementos de calidad para resultados reales",
+  topRight: "3 cuotas sin interes"
+};
+
+const routeToView = {
+  "/": "shop",
+  "/productos": "productos",
+  "/categorias": "categorias",
+  "/objetivos": "objetivos",
+  "/packs": "packs",
+  "/nosotros": "nosotros",
+  "/contacto": "contacto",
+  "/admin": "admin",
+  "/checkout": "checkout"
+};
+
+const viewToRoute = {
+  shop: "/",
+  productos: "/productos",
+  "categorÃ­as": "/categorias",
+  categorias: "/categorias",
+  objetivos: "/objetivos",
+  packs: "/packs",
+  nosotros: "/nosotros",
+  contacto: "/contacto",
+  admin: "/admin",
+  checkout: "/checkout"
+};
+
 const defaultProducts = [
   {
     id: "whey-protein",
@@ -224,7 +255,7 @@ async function apiRequest(path, options = {}) {
 }
 
 function useProducts() {
-  const [products, setProducts] = useState(defaultProducts);
+  const [products, setProducts] = useState([]);
   const [status, setStatus] = useState("Cargando catálogo...");
   const [apiReady, setApiReady] = useState(false);
 
@@ -236,9 +267,9 @@ function useProducts() {
       setApiReady(true);
       setStatus("");
     } catch (error) {
-      setProducts(defaultProducts);
+      setProducts([]);
       setApiReady(false);
-      setStatus("MongoDB todavía no está conectado. Se muestra un catálogo demo.");
+      setStatus(`MongoDB no conecto: ${error.message}`);
     }
   };
 
@@ -247,6 +278,33 @@ function useProducts() {
   }, []);
 
   return { products, setProducts, refreshProducts, status, apiReady };
+}
+
+function useSettings() {
+  const [settings, setSettings] = useState(defaultSettings);
+  const [settingsReady, setSettingsReady] = useState(false);
+
+  const refreshSettings = async () => {
+    try {
+      const remoteSettings = await apiRequest("/api/settings");
+      setSettings({ ...defaultSettings, ...remoteSettings });
+      setSettingsReady(true);
+    } catch {
+      setSettings(defaultSettings);
+      setSettingsReady(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshSettings();
+  }, []);
+
+  return { settings, setSettings, refreshSettings, settingsReady };
+}
+
+function getCurrentView() {
+  const path = window.location.pathname.replace(/\/$/, "") || "/";
+  return routeToView[path] || "shop";
 }
 
 function ProductVisual({ product, compact = false }) {
@@ -266,21 +324,22 @@ function ProductVisual({ product, compact = false }) {
   );
 }
 
-function Header({ cartCount, onCartOpen, activeView, setActiveView }) {
+function Header({ cartCount, onCartOpen, activeView, setActiveView, settings }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const nav = ["Inicio", "Productos", "Categorías", "Objetivos", "Packs", "Nosotros", "Contacto"];
+  const nav = ["Inicio", "Productos", "Categorias", "Objetivos", "Packs", "Nosotros", "Contacto"];
 
   const go = (item) => {
-    setActiveView(item === "Inicio" ? "shop" : item.toLowerCase());
+    const next = item === "Inicio" ? "shop" : item.toLowerCase();
+    setActiveView(next);
     setMenuOpen(false);
   };
 
   return (
     <header className="site-header">
       <div className="top-strip">
-        <span>Envío gratis a partir de $80.000</span>
-        <b><Bolt size={18} /> Suplementos de calidad para resultados reales <Bolt size={18} /></b>
-        <span>3 cuotas sin interés</span>
+        <span>{settings.topLeft}</span>
+        <b><Bolt size={18} /> {settings.topCenter} <Bolt size={18} /></b>
+        <span>{settings.topRight}</span>
       </div>
       <div className="nav-shell">
         <button className="icon-button mobile-only" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menú">
@@ -293,7 +352,7 @@ function Header({ cartCount, onCartOpen, activeView, setActiveView }) {
           {nav.map((item) => (
             <button key={item} onClick={() => go(item)} className={activeView === item.toLowerCase() ? "active" : ""}>
               {item}
-              {["Productos", "Categorías", "Objetivos"].includes(item) && <ChevronDown size={14} />}
+              {["Productos", "Categorias", "Objetivos"].includes(item) && <ChevronDown size={14} />}
             </button>
           ))}
         </nav>
@@ -314,34 +373,10 @@ function Header({ cartCount, onCartOpen, activeView, setActiveView }) {
   );
 }
 
-function Hero({ setActiveView }) {
+function Hero() {
   return (
-    <section className="hero">
-      <div className="hero-copy">
-        <p className="eyebrow"><Sparkles size={17} /> Línea premium Norte</p>
-        <h1>Fuerza que te impulsa. Calidad que te respalda.</h1>
-        <p>Suplementos, packs y asesoramiento para entrenar con objetivos claros y productos confiables.</p>
-        <div className="hero-actions">
-          <button className="primary-button" onClick={() => setActiveView("productos")}>
-            Ver productos <Bolt size={19} />
-          </button>
-          <button className="ghost-button" onClick={() => setActiveView("contacto")}>
-            Asesoramiento <MessageCircle size={18} />
-          </button>
-        </div>
-        <div className="trust-row">
-          <span><Star size={18} /> Calidad premium</span>
-          <span><Check size={18} /> Resultados comprobados</span>
-          <span><Truck size={18} /> Envíos a todo el país</span>
-        </div>
-      </div>
-      <div className="hero-products" aria-hidden="true">
-        {defaultProducts.slice(0, 4).map((product, index) => (
-          <div className={`hero-product hp-${index}`} key={product.id}>
-            <ProductVisual product={product} />
-          </div>
-        ))}
-      </div>
+    <section className="hero image-hero" aria-label="Norte Suplementos">
+      <img src="/banner.png" alt="Norte Suplementos" />
     </section>
   );
 }
@@ -412,12 +447,12 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
   }, [products, category, selectedObjective, query, sort]);
 
   const featured = products.filter((p) => p.featured).slice(0, 5);
-  const showFullCatalog = ["productos", "categorías", "objetivos", "packs"].includes(activeView);
+  const showFullCatalog = ["productos", "categorias", "objetivos", "packs"].includes(activeView);
   const catalogProducts = activeView === "packs" ? visibleProducts.filter((p) => p.category === "Packs") : visibleProducts;
 
   return (
     <>
-      <Hero setActiveView={setActiveView} />
+      <Hero />
       <ObjectiveRail
         selectedObjective={selectedObjective}
         setSelectedObjective={setSelectedObjective}
@@ -545,14 +580,7 @@ function AboutAndContact() {
   );
 }
 
-function CartDrawer({ open, setOpen, cart, products, setCart }) {
-  const [customer, setCustomer] = useState({
-    name: "",
-    phone: "",
-    address: "",
-    city: "",
-    notes: ""
-  });
+function CartDrawer({ open, setOpen, cart, products, setCart, goToCheckout }) {
   const lines = cart
     .map((item) => ({ ...item, product: products.find((product) => product.id === item.id) }))
     .filter((item) => item.product);
@@ -564,23 +592,6 @@ function CartDrawer({ open, setOpen, cart, products, setCart }) {
         .map((item) => (item.id === id ? { ...item, qty: Math.max(0, item.qty + delta) } : item))
         .filter((item) => item.qty > 0)
     );
-  };
-
-  const updateCustomer = (field, value) => {
-    setCustomer((current) => ({ ...current, [field]: value }));
-  };
-
-  const checkoutText = encodeURIComponent(
-    `Hola Norte Suplementos, quiero hacer este pedido:\n\nCliente:\nNombre: ${customer.name}\nTelefono: ${customer.phone}\nDireccion: ${customer.address}\nLocalidad: ${customer.city}\nNotas: ${customer.notes || "-"}\n\nProductos:\n${lines
-      .map((item) => `- ${item.product.name} x${item.qty}: ${money(item.product.price * item.qty)}`)
-      .join("\n")}\n\nTotal: ${money(total)}\nForma de pago: transferencia bancaria.`
-  );
-
-  const submitCheckout = (event) => {
-    event.preventDefault();
-    if (!lines.length) return;
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${checkoutText}`, "_blank", "noopener,noreferrer");
-    setOpen(false);
   };
 
   return (
@@ -608,38 +619,140 @@ function CartDrawer({ open, setOpen, cart, products, setCart }) {
           </div>
         ))}
       </div>
-      <form className="cart-footer" onSubmit={submitCheckout}>
-        <div className="checkout-fields">
-          <label>Nombre y apellido<input required value={customer.name} onChange={(event) => updateCustomer("name", event.target.value)} /></label>
-          <label>Telefono<input required value={customer.phone} onChange={(event) => updateCustomer("phone", event.target.value)} /></label>
-          <label>Direccion<input required value={customer.address} onChange={(event) => updateCustomer("address", event.target.value)} /></label>
-          <label>Localidad<input required value={customer.city} onChange={(event) => updateCustomer("city", event.target.value)} /></label>
-          <label>Notas<textarea value={customer.notes} onChange={(event) => updateCustomer("notes", event.target.value)} placeholder="Horario, referencias o consulta" /></label>
-        </div>
+      <div className="cart-footer">
         <div>
           <span>Total</span>
           <strong>{money(total)}</strong>
         </div>
         <button
-          type="submit"
+          type="button"
           className={`primary-button ${lines.length === 0 ? "disabled" : ""}`}
           disabled={lines.length === 0}
+          onClick={() => {
+            setOpen(false);
+            goToCheckout();
+          }}
         >
-          Comprar por WhatsApp <MessageCircle size={18} />
+          Ir al checkout <ArrowRight size={18} />
         </button>
-        <small>Pago unicamente por transferencia. Te enviamos los datos bancarios al confirmar el pedido.</small>
-      </form>
+        <small>Pago unicamente por transferencia. Completas tus datos en el checkout.</small>
+      </div>
     </aside>
+  );
+}
+
+function CheckoutPage({ cart, products, setCart, setActiveView }) {
+  const [customer, setCustomer] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    city: "",
+    notes: ""
+  });
+  const lines = cart
+    .map((item) => ({ ...item, product: products.find((product) => product.id === item.id) }))
+    .filter((item) => item.product);
+  const total = lines.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+
+  const updateCustomer = (field, value) => {
+    setCustomer((current) => ({ ...current, [field]: value }));
+  };
+
+  const checkoutText = encodeURIComponent(
+    `Hola Norte Suplementos, quiero hacer este pedido:\n\nCliente:\nNombre: ${customer.name}\nTelefono: ${customer.phone}\nDireccion: ${customer.address}\nLocalidad: ${customer.city}\nNotas: ${customer.notes || "-"}\n\nProductos:\n${lines
+      .map((item) => `- ${item.product.name} x${item.qty}: ${money(item.product.price * item.qty)}`)
+      .join("\n")}\n\nTotal: ${money(total)}\nForma de pago: transferencia bancaria.`
+  );
+
+  const updateQty = (id, delta) => {
+    setCart((items) =>
+      items
+        .map((item) => (item.id === id ? { ...item, qty: Math.max(0, item.qty + delta) } : item))
+        .filter((item) => item.qty > 0)
+    );
+  };
+
+  const submitCheckout = (event) => {
+    event.preventDefault();
+    if (!lines.length) return;
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${checkoutText}`, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <main className="checkout-page">
+      <section className="checkout-head">
+        <div>
+          <p className="eyebrow"><ShoppingCart size={16} /> Checkout</p>
+          <h1>Finalizar compra</h1>
+          <p>Completas tus datos y enviamos el pedido por WhatsApp. El pago es unicamente por transferencia.</p>
+        </div>
+        <button className="ghost-button" onClick={() => setActiveView("productos")}>
+          Seguir comprando <ArrowRight size={18} />
+        </button>
+      </section>
+
+      <section className="checkout-layout">
+        <form className="checkout-form" onSubmit={submitCheckout}>
+          <h2>Datos del cliente</h2>
+          <label>Nombre y apellido<input required value={customer.name} onChange={(event) => updateCustomer("name", event.target.value)} /></label>
+          <label>Telefono<input required value={customer.phone} onChange={(event) => updateCustomer("phone", event.target.value)} /></label>
+          <label>Direccion<input required value={customer.address} onChange={(event) => updateCustomer("address", event.target.value)} /></label>
+          <label>Localidad<input required value={customer.city} onChange={(event) => updateCustomer("city", event.target.value)} /></label>
+          <label>Notas<textarea value={customer.notes} onChange={(event) => updateCustomer("notes", event.target.value)} placeholder="Horario, referencias o consulta" /></label>
+          <button className="primary-button" type="submit" disabled={!lines.length}>
+            Enviar pedido por WhatsApp <MessageCircle size={18} />
+          </button>
+        </form>
+
+        <aside className="checkout-summary">
+          <h2>Tu pedido</h2>
+          {lines.length === 0 && <p className="empty">Todavia no agregaste productos.</p>}
+          {lines.map(({ product, qty }) => (
+            <div className="cart-line" key={product.id}>
+              <ProductVisual product={product} compact />
+              <div>
+                <strong>{product.name}</strong>
+                <span>{money(product.price)}</span>
+                <div className="qty-control">
+                  <button type="button" onClick={() => updateQty(product.id, -1)}>-</button>
+                  <b>{qty}</b>
+                  <button type="button" onClick={() => updateQty(product.id, 1)}>+</button>
+                </div>
+              </div>
+            </div>
+          ))}
+          <div className="checkout-total">
+            <span>Total</span>
+            <strong>{money(total)}</strong>
+          </div>
+        </aside>
+      </section>
+    </main>
   );
 }
 
 function AdminGate({ onUnlock }) {
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [checking, setChecking] = useState(false);
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
-    sessionStorage.setItem(STORAGE_ADMIN_TOKEN, password);
-    onUnlock(password);
+    setChecking(true);
+    setError("");
+    try {
+      await apiRequest("/api/auth", {
+        method: "POST",
+        headers: { "x-admin-token": password },
+        body: JSON.stringify({})
+      });
+      sessionStorage.setItem(STORAGE_ADMIN_TOKEN, password);
+      onUnlock(password);
+    } catch (authError) {
+      setError(authError.message);
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -662,20 +775,27 @@ function AdminGate({ onUnlock }) {
               placeholder="ADMIN_TOKEN"
             />
           </label>
-          <button className="primary-button" type="submit">Entrar</button>
+          {error && <p className="admin-notice">{error}</p>}
+          <button className="primary-button" type="submit" disabled={checking}>Entrar</button>
         </form>
       </section>
     </main>
   );
 }
 
-function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminToken, onLogout }) {
+function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminToken, onLogout, settings, setSettings, refreshSettings }) {
   const [form, setForm] = useState(initialForm);
+  const [settingsForm, setSettingsForm] = useState(settings);
   const [editingId, setEditingId] = useState("");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    setSettingsForm(settings);
+  }, [settings]);
+
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const updateSettings = (field, value) => setSettingsForm((current) => ({ ...current, [field]: value }));
 
   const adminHeaders = () => ({ "x-admin-token": adminToken });
 
@@ -779,6 +899,26 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
     reader.readAsText(file);
   };
 
+  const saveSettings = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setNotice("");
+    try {
+      const saved = await apiRequest("/api/settings", {
+        method: "PUT",
+        headers: adminHeaders(),
+        body: JSON.stringify(settingsForm)
+      });
+      setSettings(saved);
+      await refreshSettings();
+      setNotice("Textos superiores guardados.");
+    } catch (error) {
+      setNotice(error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <main className="admin-page">
       <section className="admin-hero">
@@ -803,6 +943,14 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
 
       <section className="admin-layout">
         {notice && <p className="admin-notice">{notice}</p>}
+
+        <form className="settings-form" onSubmit={saveSettings}>
+          <h2>Barra superior</h2>
+          <label>Texto izquierdo<input value={settingsForm.topLeft || ""} onChange={(e) => updateSettings("topLeft", e.target.value)} /></label>
+          <label>Texto central<input value={settingsForm.topCenter || ""} onChange={(e) => updateSettings("topCenter", e.target.value)} /></label>
+          <label>Texto derecho<input value={settingsForm.topRight || ""} onChange={(e) => updateSettings("topRight", e.target.value)} /></label>
+          <button className="primary-button" type="submit" disabled={saving}>Guardar textos</button>
+        </form>
 
         <form className="product-form" onSubmit={saveProduct}>
           <h2>{editingId ? "Editar producto" : "Nuevo producto"}</h2>
@@ -864,12 +1012,30 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
 
 function App() {
   const { products, setProducts, refreshProducts, status, apiReady } = useProducts();
+  const { settings, setSettings, refreshSettings } = useSettings();
   const [cart, setCart] = useLocalState(STORAGE_CART, []);
   const [cartOpen, setCartOpen] = useState(false);
-  const [activeView, setActiveView] = useState("shop");
+  const [activeViewState, setActiveViewState] = useState(getCurrentView);
   const [selectedObjective, setSelectedObjective] = useState("Todos");
   const [adminToken, setAdminToken] = useState(getStoredAdminToken);
 
+  useEffect(() => {
+    const onPopState = () => setActiveViewState(getCurrentView());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const setActiveView = (view) => {
+    const nextView = view || "shop";
+    const route = viewToRoute[nextView] || "/";
+    setActiveViewState(nextView);
+    if (window.location.pathname !== route) {
+      window.history.pushState({}, "", route);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const activeView = activeViewState;
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
   const addToCart = (id) => {
@@ -882,7 +1048,7 @@ function App() {
 
   return (
     <div>
-      <Header cartCount={cartCount} onCartOpen={() => setCartOpen(true)} activeView={activeView} setActiveView={setActiveView} />
+      <Header cartCount={cartCount} onCartOpen={() => setCartOpen(true)} activeView={activeView} setActiveView={setActiveView} settings={settings} />
       {status && <div className="site-status">{status}</div>}
       {activeView === "admin" ? (
         adminToken ? (
@@ -892,6 +1058,9 @@ function App() {
             refreshProducts={refreshProducts}
             apiReady={apiReady}
             adminToken={adminToken}
+            settings={settings}
+            setSettings={setSettings}
+            refreshSettings={refreshSettings}
             onLogout={() => {
               sessionStorage.removeItem(STORAGE_ADMIN_TOKEN);
               setAdminToken("");
@@ -900,6 +1069,8 @@ function App() {
         ) : (
           <AdminGate onUnlock={setAdminToken} />
         )
+      ) : activeView === "checkout" ? (
+        <CheckoutPage cart={cart} products={products} setCart={setCart} setActiveView={setActiveView} />
       ) : (
         <main>
           <Storefront
@@ -917,7 +1088,14 @@ function App() {
         <img src="/logo-horizontal.png" alt="Norte Suplementos" />
         <span>2026 Norte Suplementos. Tienda preparada para Vercel y MongoDB.</span>
       </footer>
-      <CartDrawer open={cartOpen} setOpen={setCartOpen} cart={cart} products={products} setCart={setCart} />
+      <CartDrawer
+        open={cartOpen}
+        setOpen={setCartOpen}
+        cart={cart}
+        products={products}
+        setCart={setCart}
+        goToCheckout={() => setActiveView("checkout")}
+      />
       {cartOpen && <button className="drawer-backdrop" onClick={() => setCartOpen(false)} aria-label="Cerrar carrito" />}
     </div>
   );
