@@ -2,6 +2,18 @@ import { getDb, isAdmin, readBody, sendJson } from "./_mongo.js";
 
 const collectionName = "products";
 
+function normalizeCategory(category = "") {
+  const clean = String(category)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (clean.includes("prote")) return "Proteínas";
+  if (clean.includes("creat")) return "Creatinas";
+  if (clean.includes("pre")) return "Pre-entrenos";
+  return "Proteínas";
+}
+
 function normalizeProduct(input) {
   const incomingImages = Array.isArray(input.images) ? input.images : [];
   const images = [...incomingImages, input.image]
@@ -20,8 +32,8 @@ function normalizeProduct(input) {
   return {
     id,
     name: String(input.name || "").trim(),
-    category: String(input.category || "General").trim(),
-    objective: String(input.objective || "Fuerza").trim(),
+    category: normalizeCategory(input.category),
+    objective: normalizeCategory(input.category || input.objective),
     flavor: String(input.flavor || "").trim(),
     size: String(input.size || "").trim(),
     price: Number(input.price || 0),

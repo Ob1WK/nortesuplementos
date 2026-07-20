@@ -48,7 +48,6 @@ const routeToView = {
   "/": "shop",
   "/productos": "productos",
   "/categorias": "categorias",
-  "/objetivos": "objetivos",
   "/packs": "packs",
   "/nosotros": "nosotros",
   "/contacto": "contacto",
@@ -61,13 +60,20 @@ const viewToRoute = {
   productos: "/productos",
   "categorías": "/categorias",
   categorias: "/categorias",
-  objetivos: "/objetivos",
   packs: "/packs",
   nosotros: "/nosotros",
   contacto: "/contacto",
   admin: "/admin",
   checkout: "/checkout"
 };
+
+const publicCategories = [
+  { name: "Proteínas", slug: "proteinas", icon: Dumbbell },
+  { name: "Creatinas", slug: "creatinas", icon: Bolt },
+  { name: "Pre-entrenos", slug: "pre-entrenos", icon: Flame }
+];
+
+const categoryNames = publicCategories.map((category) => category.name);
 
 const defaultProducts = [
   {
@@ -137,7 +143,7 @@ const defaultProducts = [
   {
     id: "pre-workout",
     name: "Pre-Workout",
-    category: "Pre entrenos",
+    category: "Pre-entrenos",
     objective: "Enfoque",
     flavor: "Frutos rojos",
     size: "300 g",
@@ -226,6 +232,27 @@ function getDiscountPercent(product) {
   return Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100);
 }
 
+function normalizeCategory(category = "") {
+  const clean = String(category)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (clean.includes("prote")) return "Proteínas";
+  if (clean.includes("creat")) return "Creatinas";
+  if (clean.includes("pre")) return "Pre-entrenos";
+  return categoryNames.includes(category) ? category : "Proteínas";
+}
+
+function normalizeClientProduct(product) {
+  return {
+    ...product,
+    category: normalizeCategory(product.category),
+    available: product.available !== false,
+    images: getProductImages(product)
+  };
+}
+
 function useLocalState(key, fallback) {
   const [state, setState] = useState(() => {
     try {
@@ -276,7 +303,7 @@ function useProducts() {
     try {
       setStatus("Cargando catálogo...");
       const remoteProducts = await apiRequest("/api/products");
-      setProducts(remoteProducts);
+      setProducts(remoteProducts.map(normalizeClientProduct));
       setApiReady(true);
       setStatus("");
     } catch (error) {
@@ -317,7 +344,14 @@ function useSettings() {
 
 function getCurrentView() {
   const path = window.location.pathname.replace(/\/$/, "") || "/";
-  return routeToView[path] || "shop";
+  return routeToView[path] || (getCurrentProductId() ? "product" : "shop");
+}
+
+function getCurrentProductId() {
+  const path = window.location.pathname.replace(/\/$/, "") || "/";
+  if (routeToView[path] || path === "/") return "";
+  const parts = path.split("/").filter(Boolean);
+  return parts.length === 1 ? parts[0] : "";
 }
 
 function ProductVisual({ product, compact = false }) {
@@ -392,15 +426,15 @@ function Hero() {
   );
 }
 
-function ObjectiveRail({ selectedObjective, setSelectedObjective, setActiveView }) {
+function CategoryRail({ selectedCategory, setSelectedCategory, setActiveView }) {
   return (
     <section className="objective-rail">
-      {objectives.map(({ name, icon: Icon }) => (
+      {publicCategories.map(({ name, icon: Icon }) => (
         <button
           key={name}
-          className={selectedObjective === name ? "selected" : ""}
+          className={selectedCategory === name ? "selected" : ""}
           onClick={() => {
-            setSelectedObjective(selectedObjective === name ? "Todos" : name);
+            setSelectedCategory(selectedCategory === name ? "Todas" : name);
             setActiveView("productos");
           }}
         >
@@ -413,10 +447,10 @@ function ObjectiveRail({ selectedObjective, setSelectedObjective, setActiveView 
   );
 }
 
-function ProductCard({ product, addToCart }) {
+function ProductCard({ product, addToCart, openProduct }) {
   const discount = getDiscountPercent(product);
   return (
-    <article className="product-card">
+    <article className="product-card" onClick={() => openProduct?.(product.id)}>
       {product.badge && <span className="badge">{product.badge}</span>}
       {discount > 0 && <span className="discount-badge">-{discount}%</span>}
       <div className="product-art">
@@ -431,7 +465,7 @@ function ProductCard({ product, addToCart }) {
           {product.oldPrice > product.price && <del>{money(product.oldPrice)}</del>}
         </div>
         <small>{discount > 0 ? "Producto en promo" : "Pago por transferencia"}</small>
-        <button onClick={() => addToCart(product.id)}>
+        <button onClick={(event) => { event.stopPropagation(); addToCart(product.id); }}>
           <ShoppingCart size={17} /> Agregar al carrito
         </button>
       </div>
@@ -439,7 +473,7 @@ function ProductCard({ product, addToCart }) {
   );
 }
 
-function Storefront({ products, addToCart, selectedObjective, setSelectedObjective, activeView, setActiveView }) {
+function Storefront({ products, addToCart, openProduct, selectedCategory, setSelectedCategory, activeView, setActiveView }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("Todas");
   const [sort, setSort] = useState("destacados");
@@ -450,25 +484,25 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
   const visibleProducts = useMemo(() => {
     return availableProducts
       .filter((product) => category === "Todas" || product.category === category)
-      .filter((product) => selectedObjective === "Todos" || product.objective === selectedObjective)
+      .filter((product) => selectedCategory === "Todas" || product.category === selectedCategory)
       .filter((product) => `${product.name} ${product.category} ${product.flavor}`.toLowerCase().includes(query.toLowerCase()))
       .sort((a, b) => {
         if (sort === "precio-menor") return a.price - b.price;
         if (sort === "precio-mayor") return b.price - a.price;
         return Number(b.featured) - Number(a.featured);
       });
-  }, [availableProducts, category, selectedObjective, query, sort]);
+  }, [availableProducts, category, selectedCategory, query, sort]);
 
   const featured = availableProducts.filter((p) => p.featured).slice(0, 5);
-  const showFullCatalog = ["productos", "categorias", "objetivos", "packs"].includes(activeView);
+  const showFullCatalog = ["productos", "categorias", "packs"].includes(activeView);
   const catalogProducts = activeView === "packs" ? visibleProducts.filter((p) => p.category === "Packs") : visibleProducts;
 
   return (
     <>
       <Hero />
-      <ObjectiveRail
-        selectedObjective={selectedObjective}
-        setSelectedObjective={setSelectedObjective}
+      <CategoryRail
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
         setActiveView={setActiveView}
       />
 
@@ -484,7 +518,7 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
 
       <section className="product-grid featured-grid">
         {featured.map((product) => (
-          <ProductCard key={product.id} product={product} addToCart={addToCart} />
+          <ProductCard key={product.id} product={product} addToCart={addToCart} openProduct={openProduct} />
         ))}
         {featured.length === 0 && (
           <div className="empty-catalog">
@@ -521,7 +555,7 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
           <div className="section-head compact">
             <div>
               <p className="eyebrow"><Filter size={16} /> Catálogo</p>
-              <h2>Elegí por objetivo, categoría o búsqueda</h2>
+              <h2>Elegí por categoría o búsqueda</h2>
             </div>
           </div>
           <div className="filters">
@@ -532,9 +566,9 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
             <select value={category} onChange={(event) => setCategory(event.target.value)}>
               {categories.map((item) => <option key={item}>{item}</option>)}
             </select>
-            <select value={selectedObjective} onChange={(event) => setSelectedObjective(event.target.value)}>
-              <option>Todos</option>
-              {objectives.map((item) => <option key={item.name}>{item.name}</option>)}
+            <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)}>
+              <option>Todas</option>
+              {categoryNames.map((item) => <option key={item}>{item}</option>)}
             </select>
             <select value={sort} onChange={(event) => setSort(event.target.value)}>
               <option value="destacados">Destacados</option>
@@ -544,7 +578,7 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
           </div>
           <div className="product-grid">
             {catalogProducts.map((product) => (
-              <ProductCard key={product.id} product={product} addToCart={addToCart} />
+              <ProductCard key={product.id} product={product} addToCart={addToCart} openProduct={openProduct} />
             ))}
             {catalogProducts.length === 0 && (
               <div className="empty-catalog">
@@ -559,19 +593,18 @@ function Storefront({ products, addToCart, selectedObjective, setSelectedObjecti
   );
 }
 
-function ProductListing({ products, addToCart, selectedObjective, setSelectedObjective, activeView }) {
+function ProductListing({ products, addToCart, openProduct, selectedCategory, setSelectedCategory, activeView }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("Todas");
   const [sort, setSort] = useState("destacados");
   const availableProducts = useMemo(() => products.filter((product) => product.available !== false), [products]);
-  const categories = useMemo(() => ["Todas", ...new Set(availableProducts.map((product) => product.category))], [availableProducts]);
-  const viewObjective = activeView === "objetivos" ? selectedObjective : "Todos";
-  const forcedCategory = activeView === "packs" ? "Packs" : category;
+  const categories = useMemo(() => ["Todas", ...categoryNames], []);
+  const categoryFilter = selectedCategory !== "Todas" ? selectedCategory : category;
+  const forcedCategory = activeView === "packs" ? "Packs" : categoryFilter;
 
   const visibleProducts = useMemo(() => {
     return availableProducts
       .filter((product) => forcedCategory === "Todas" || product.category === forcedCategory)
-      .filter((product) => viewObjective === "Todos" || product.objective === viewObjective)
       .filter((product) => `${product.name} ${product.category} ${product.flavor}`.toLowerCase().includes(query.toLowerCase()))
       .sort((a, b) => {
         if (sort === "precio-menor") return a.price - b.price;
@@ -579,7 +612,7 @@ function ProductListing({ products, addToCart, selectedObjective, setSelectedObj
         if (sort === "promo") return getDiscountPercent(b) - getDiscountPercent(a);
         return Number(b.featured) - Number(a.featured);
       });
-  }, [availableProducts, forcedCategory, viewObjective, query, sort]);
+  }, [availableProducts, forcedCategory, categoryFilter, query, sort]);
 
   return (
     <main className="catalog-page">
@@ -587,7 +620,7 @@ function ProductListing({ products, addToCart, selectedObjective, setSelectedObj
         <div>
           <p className="eyebrow"><Filter size={16} /> Productos</p>
           <h1>{activeView === "packs" ? "Packs" : "Todos los productos"}</h1>
-          <p>Explorá el catálogo, filtrá por categoría u objetivo y agregá tus suplementos al carrito.</p>
+          <p>Explorá el catálogo, filtrá por categoría y agregá tus suplementos al carrito.</p>
         </div>
       </section>
 
@@ -600,9 +633,9 @@ function ProductListing({ products, addToCart, selectedObjective, setSelectedObj
           <select value={category} onChange={(event) => setCategory(event.target.value)} disabled={activeView === "packs"}>
             {categories.map((item) => <option key={item}>{item}</option>)}
           </select>
-          <select value={selectedObjective} onChange={(event) => setSelectedObjective(event.target.value)}>
-            <option>Todos</option>
-            {objectives.map((item) => <option key={item.name}>{item.name}</option>)}
+          <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)}>
+            <option>Todas</option>
+            {categoryNames.map((item) => <option key={item}>{item}</option>)}
           </select>
           <select value={sort} onChange={(event) => setSort(event.target.value)}>
             <option value="destacados">Destacados</option>
@@ -614,7 +647,7 @@ function ProductListing({ products, addToCart, selectedObjective, setSelectedObj
 
         <div className="product-grid">
           {visibleProducts.map((product) => (
-            <ProductCard key={product.id} product={product} addToCart={addToCart} />
+            <ProductCard key={product.id} product={product} addToCart={addToCart} openProduct={openProduct} />
           ))}
           {visibleProducts.length === 0 && (
             <div className="empty-catalog">
@@ -622,6 +655,83 @@ function ProductListing({ products, addToCart, selectedObjective, setSelectedObj
               <p>{activeView === "packs" ? "Estamos preparando combos para que puedas ahorrar más." : "Probá cambiando los filtros o volvé más tarde."}</p>
             </div>
           )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ProductDetail({ product, addToCart, setActiveView, loading }) {
+  const [selectedImage, setSelectedImage] = useState(0);
+  const images = getProductImages(product);
+  const discount = getDiscountPercent(product);
+
+  useEffect(() => {
+    setSelectedImage(0);
+  }, [product?.id]);
+
+  if (loading) {
+    return (
+      <main className="product-detail-page">
+        <section className="empty-catalog">
+          <h3>Cargando producto</h3>
+          <p>Estamos buscando la información del producto.</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (!product || product.available === false) {
+    return (
+      <main className="product-detail-page">
+        <section className="empty-catalog">
+          <h3>Producto no disponible</h3>
+          <p>El producto que buscás no está disponible por el momento.</p>
+          <button className="primary-button" onClick={() => setActiveView("productos")}>Ver productos</button>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="product-detail-page">
+      <button className="link-button detail-back" onClick={() => setActiveView("productos")}>
+        <ArrowRight size={18} /> Volver a productos
+      </button>
+      <section className="product-detail">
+        <div className="detail-gallery">
+          <div className="detail-main-image">
+            {images.length ? <img src={images[selectedImage]} alt={product.name} /> : <ProductVisual product={product} />}
+          </div>
+          {images.length > 1 && (
+            <div className="detail-thumbs">
+              {images.map((image, index) => (
+                <button
+                  key={`${image.slice(0, 24)}-${index}`}
+                  className={selectedImage === index ? "selected" : ""}
+                  onClick={() => setSelectedImage(index)}
+                  aria-label={`Ver foto ${index + 1}`}
+                >
+                  <img src={image} alt="" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="detail-info">
+          <p className="eyebrow">{product.category}</p>
+          <h1>{product.name}</h1>
+          <p className="detail-meta">{product.size}{product.flavor ? ` · ${product.flavor}` : ""}</p>
+          <div className="price-row detail-price">
+            <strong>{money(product.price)}</strong>
+            {product.oldPrice > product.price && <del>{money(product.oldPrice)}</del>}
+            {discount > 0 && <span className="discount-badge inline">-{discount}%</span>}
+          </div>
+          <p className="detail-description">{product.description || "Producto seleccionado para acompañar tu entrenamiento."}</p>
+          <button className="primary-button" onClick={() => addToCart(product.id)}>
+            <ShoppingCart size={18} /> Agregar al carrito
+          </button>
         </div>
       </section>
     </main>
@@ -637,7 +747,7 @@ function AboutAndContact() {
           <h2>Suplementos Norte acompaña tu progreso con productos claros, atención cercana y selección enfocada en rendimiento.</h2>
         </div>
         <ul>
-          <li><PackageCheck size={20} /> Catálogo curado por objetivos.</li>
+          <li><PackageCheck size={20} /> Catálogo curado por categorías.</li>
           <li><Truck size={20} /> Envíos coordinados a todo el país.</li>
           <li><BadgePercent size={20} /> Packs y promociones actualizadas constantemente.</li>
         </ul>
@@ -935,6 +1045,8 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
     const next = {
       ...form,
       id,
+      category: normalizeCategory(form.category),
+      objective: normalizeCategory(form.category),
       price: Number(form.price),
       oldPrice: Number(form.oldPrice),
       available: form.available !== false,
@@ -1085,12 +1197,12 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
           <h2>{editingId ? "Editar producto" : "Nuevo producto"}</h2>
           <label>Nombre<input required value={form.name} onChange={(e) => update("name", e.target.value)} /></label>
           <div className="two-cols">
-            <label>Categoría<input value={form.category} onChange={(e) => update("category", e.target.value)} /></label>
-            <label>Objetivo<select value={form.objective} onChange={(e) => update("objective", e.target.value)}>{objectives.map((item) => <option key={item.name}>{item.name}</option>)}</select></label>
+            <label>Categoría<select value={form.category} onChange={(e) => update("category", e.target.value)}>{categoryNames.map((item) => <option key={item}>{item}</option>)}</select></label>
+            <label>Sabor<input value={form.flavor} onChange={(e) => update("flavor", e.target.value)} /></label>
           </div>
           <div className="two-cols">
-            <label>Sabor<input value={form.flavor} onChange={(e) => update("flavor", e.target.value)} /></label>
             <label>Tamaño<input value={form.size} onChange={(e) => update("size", e.target.value)} /></label>
+            <label>Etiqueta<input value={form.badge} onChange={(e) => update("badge", e.target.value)} /></label>
           </div>
           <div className="three-cols">
             <label>Precio<input type="number" value={form.price} onChange={(e) => update("price", e.target.value)} /></label>
@@ -1098,7 +1210,6 @@ function AdminPanel({ products, setProducts, refreshProducts, apiReady, adminTok
             <label>Disponibilidad<select value={form.available === false ? "no" : "yes"} onChange={(e) => update("available", e.target.value === "yes")}><option value="yes">Disponible</option><option value="no">No disponible</option></select></label>
           </div>
           <div className="two-cols">
-            <label>Etiqueta<input value={form.badge} onChange={(e) => update("badge", e.target.value)} /></label>
             <label>Color<input type="color" value={form.color} onChange={(e) => update("color", e.target.value)} /></label>
           </div>
           <div className="image-upload-field">
@@ -1158,11 +1269,15 @@ function App() {
   const [cart, setCart] = useLocalState(STORAGE_CART, []);
   const [cartOpen, setCartOpen] = useState(false);
   const [activeViewState, setActiveViewState] = useState(getCurrentView);
-  const [selectedObjective, setSelectedObjective] = useState("Todos");
+  const [activeProductId, setActiveProductId] = useState(getCurrentProductId);
+  const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [adminToken, setAdminToken] = useState(getStoredAdminToken);
 
   useEffect(() => {
-    const onPopState = () => setActiveViewState(getCurrentView());
+    const onPopState = () => {
+      setActiveViewState(getCurrentView());
+      setActiveProductId(getCurrentProductId());
+    };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
@@ -1171,6 +1286,7 @@ function App() {
     const nextView = view || "shop";
     const route = viewToRoute[nextView] || "/";
     setActiveViewState(nextView);
+    setActiveProductId("");
     if (window.location.pathname !== route) {
       window.history.pushState({}, "", route);
     }
@@ -1179,6 +1295,17 @@ function App() {
 
   const activeView = activeViewState;
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
+  const activeProduct = products.find((product) => product.id === activeProductId);
+
+  const openProduct = (id) => {
+    setActiveProductId(id);
+    setActiveViewState("product");
+    const route = `/${id}`;
+    if (window.location.pathname !== route) {
+      window.history.pushState({}, "", route);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const addToCart = (id) => {
     setCart((items) => {
@@ -1213,12 +1340,15 @@ function App() {
         )
       ) : activeView === "checkout" ? (
         <CheckoutPage cart={cart} products={products} setCart={setCart} setActiveView={setActiveView} />
-      ) : ["productos", "categorias", "objetivos", "packs"].includes(activeView) ? (
+      ) : activeView === "product" ? (
+        <ProductDetail product={activeProduct} addToCart={addToCart} setActiveView={setActiveView} loading={products.length === 0 && Boolean(status)} />
+      ) : ["productos", "categorias", "packs"].includes(activeView) ? (
         <ProductListing
           products={products}
           addToCart={addToCart}
-          selectedObjective={selectedObjective}
-          setSelectedObjective={setSelectedObjective}
+          openProduct={openProduct}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
           activeView={activeView}
         />
       ) : (
@@ -1226,8 +1356,9 @@ function App() {
           <Storefront
             products={products}
             addToCart={addToCart}
-            selectedObjective={selectedObjective}
-            setSelectedObjective={setSelectedObjective}
+            openProduct={openProduct}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
             activeView={activeView}
             setActiveView={setActiveView}
           />
