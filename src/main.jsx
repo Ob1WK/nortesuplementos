@@ -493,7 +493,7 @@ function Storefront({ products, addToCart, openProduct, selectedCategory, setSel
       });
   }, [availableProducts, category, selectedCategory, query, sort]);
 
-  const featured = availableProducts.filter((p) => p.featured).slice(0, 5);
+  const featured = availableProducts.filter((p) => p.featured).slice(0, 4);
   const showFullCatalog = ["productos", "categorias", "packs"].includes(activeView);
   const catalogProducts = activeView === "packs" ? visibleProducts.filter((p) => p.category === "Packs") : visibleProducts;
 

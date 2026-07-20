@@ -540,7 +540,7 @@ nav button:hover {
 }
 
 .featured-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .product-card {
@@ -699,14 +699,14 @@ nav button:hover {
   border-radius: var(--radius);
   background:
     linear-gradient(120deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.28)),
-    url("/banner.png") center center / cover no-repeat,
+    url("/Fondo banner.png") center center / cover no-repeat,
     #151719;
 }
 
 .promo-athlete {
   background:
     linear-gradient(120deg, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.28)),
-    url("/banner.png") center center / cover no-repeat;
+    url("/Fondo banner.png") center center / cover no-repeat;
 }
 
 .promo h2 {
