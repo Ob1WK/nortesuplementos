@@ -469,8 +469,13 @@ nav button:hover {
   text-align: center;
 }
 
+.objective-rail button:nth-child(3n),
 .objective-rail button:last-child {
   border-right: 0;
+}
+
+.objective-rail button:nth-child(n + 4) {
+  border-top: 1px solid var(--line);
 }
 
 .objective-rail button:hover,
@@ -1625,6 +1630,14 @@ footer img {
   .objective-rail {
     grid-template-columns: 1fr;
     margin-top: -1rem;
+  }
+
+  .objective-rail button {
+    border-right: 0;
+  }
+
+  .objective-rail button:nth-child(n + 2) {
+    border-top: 1px solid var(--line);
   }
 
   .objective-rail button {

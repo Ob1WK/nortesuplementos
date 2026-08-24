@@ -70,7 +70,15 @@ const viewToRoute = {
 const publicCategories = [
   { name: "Proteínas", slug: "proteinas", icon: Dumbbell },
   { name: "Creatinas", slug: "creatinas", icon: Bolt },
-  { name: "Pre-entrenos", slug: "pre-entrenos", icon: Flame }
+  { name: "Pre-entrenos", slug: "pre-entrenos", icon: Flame },
+  { name: "Vitaminas y minerales", slug: "vitaminas-minerales", icon: HeartPulse },
+  { name: "Aminoácidos", slug: "aminoacidos", icon: Sparkles },
+  { name: "Colágenos", slug: "colagenos", icon: RotateCcw },
+  { name: "Omega 3", slug: "omega-3", icon: HeartPulse },
+  { name: "Barritas proteicas", slug: "barritas-proteicas", icon: BadgePercent },
+  { name: "Ganadores de peso", slug: "ganadores-de-peso", icon: BarChart3 },
+  { name: "Combos", slug: "combos", icon: PackageCheck },
+  { name: "Shakers", slug: "shakers", icon: ShoppingCart }
 ];
 
 const categoryNames = publicCategories.map((category) => category.name);
@@ -238,6 +246,14 @@ function normalizeCategory(category = "") {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
+  if (clean.includes("vitamin") || clean.includes("mineral") || clean.includes("magnes")) return "Vitaminas y minerales";
+  if (clean.includes("amino")) return "Aminoácidos";
+  if (clean.includes("colag")) return "Colágenos";
+  if (clean.includes("omega")) return "Omega 3";
+  if (clean.includes("barrita")) return "Barritas proteicas";
+  if (clean.includes("ganador") || clean.includes("gainer")) return "Ganadores de peso";
+  if (clean.includes("combo") || clean.includes("pack")) return "Combos";
+  if (clean.includes("shaker") || clean.includes("accesorio")) return "Shakers";
   if (clean.includes("prote")) return "Proteínas";
   if (clean.includes("creat")) return "Creatinas";
   if (clean.includes("pre")) return "Pre-entrenos";
@@ -600,7 +616,7 @@ function ProductListing({ products, addToCart, openProduct, selectedCategory, se
   const availableProducts = useMemo(() => products.filter((product) => product.available !== false), [products]);
   const categories = useMemo(() => ["Todas", ...categoryNames], []);
   const categoryFilter = selectedCategory !== "Todas" ? selectedCategory : category;
-  const forcedCategory = activeView === "packs" ? "Packs" : categoryFilter;
+  const forcedCategory = activeView === "packs" ? "Combos" : categoryFilter;
 
   const visibleProducts = useMemo(() => {
     return availableProducts
@@ -619,7 +635,7 @@ function ProductListing({ products, addToCart, openProduct, selectedCategory, se
       <section className="catalog-hero">
         <div>
           <p className="eyebrow"><Filter size={16} /> Productos</p>
-          <h1>{activeView === "packs" ? "Packs" : "Todos los productos"}</h1>
+          <h1>{activeView === "packs" ? "Combos" : "Todos los productos"}</h1>
           <p>Explorá el catálogo, filtrá por categoría y agregá tus suplementos al carrito.</p>
         </div>
       </section>
